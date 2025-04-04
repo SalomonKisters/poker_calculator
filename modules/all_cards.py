@@ -5,22 +5,23 @@ import itertools
 def get_all_cards() -> List[Card]:
     return [Card(card_number, suit) for card_number in CardNumber for suit in Suit]
 
-def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[str, Tuple[List[Card], int]]:
+def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
     """ Still very inefficient compared to itertools.combinations, but homemade = cooler"""
     remaining_cards = 5 - len(current_table_cards)
 
     if remaining_cards <= 0:
         sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
-        key = str([str(card) for card in sorted_cards])
+        key = tuple((card.number, card.suit) for card in sorted_cards)
         return {key: (sorted_cards, 1)}
 
-    available_cards = [card for card in available_cards if card not in current_table_cards]
+    available_cards = [card for card in all_unused_cards if card not in current_table_cards]
 
-    current_possible_table_cards_dict: Dict[str, Tuple[List[Card], int]] = {}
+    current_possible_table_cards_dict: Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]] = {}
     
     # Create a copy to avoid modifying the original list
-    table_cards_key = str(sorted([str(card) for card in current_table_cards], key=str))
-    current_possible_table_cards_dict[table_cards_key] = (current_table_cards.copy(), 1)
+    sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
+    table_cards_key = tuple((card.number, card.suit) for card in sorted_cards)
+    current_possible_table_cards_dict[table_cards_key] = (sorted_cards.copy(), 1)
     
     last_possible_table_cards_dict = {}
 
@@ -38,13 +39,13 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
             
             for unused_card in all_unused_cards:
                 # Check if unused card is already used in current table cards
-                if str(unused_card) not in [str(c) for c in current_cards]:
+                if unused_card not in current_cards:
                     # Add card to table
                     new_cards = current_cards.copy() + [unused_card]
                     
-                    # Create standardized key for table cards - TODO: String is inefficient here
+                    # Create standardized key for table cards using tuples (more efficient than strings)
                     sorted_cards = sorted(new_cards, key=lambda card: (card.number, card.suit))
-                    new_key = str([str(card) for card in sorted_cards])
+                    new_key = tuple((card.number, card.suit) for card in sorted_cards)
                     
                     # Update dict -> add new unique table hand or inc existing
                     if new_key not in current_possible_table_cards_dict:
@@ -58,12 +59,12 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
 
     return current_possible_table_cards_dict
 
-def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[str, Tuple[List[Card], int]]:
+def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
     remaining_cards = 5 - len(current_table_cards)
     
     if remaining_cards <= 0:
         sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
-        key = str([str(card) for card in sorted_cards])
+        key = tuple((card.number, card.suit) for card in sorted_cards)
         return {key: (sorted_cards, 1)}
     
     available_cards = [card for card in all_unused_cards if card not in current_table_cards]
@@ -74,9 +75,9 @@ def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_
     for additional_cards in itertools.combinations(available_cards, remaining_cards):
         full_table = current_table_cards + list(additional_cards)
         
-        # str key with sorted cards - TODO: String is inefficient here
+        # Use a tuple of (number, suit) pairs as key - more efficient than strings
         sorted_cards = sorted(full_table, key=lambda card: (card.number, card.suit))
-        key = str([str(card) for card in sorted_cards])
+        key = tuple((card.number, card.suit) for card in sorted_cards)
         
         if key not in combinations_dict:
             combinations_dict[key] = (sorted_cards, 1)

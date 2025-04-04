@@ -34,8 +34,8 @@ Performance is optimized by:
 
 ## Future Improvements
 
+[x] For dict with unique table card combinations, implement more efficient hashing of list of cards, instead of using sorted string
 [ ] Add asynchronous processing for improved performance
-[ ] For dict with unique table card combinations, implement hashing of CardList, instead of using sorted string
 [ ] Implement step[ ]by-step hand evaluation for faster multi-player calculations
 [ ] Create a user interface for easier interaction
 
