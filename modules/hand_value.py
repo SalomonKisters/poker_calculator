@@ -2,7 +2,6 @@ from typing import List
 from .all_hands import poker_hands
 from .card import CardNumber
 
-# Keep this synced to work with == and max()
 class HandValue:
     type_value : int
     high_card_in_type_value : int

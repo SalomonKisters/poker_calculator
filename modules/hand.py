@@ -24,7 +24,7 @@ class Hand:
         # Unique ranks descending for straights
         self.unique_ranks = sorted(self.rank_counts.keys(), reverse=True)
 
-    async def _initialize_rank_based_lookup(self):
+    def _initialize_rank_based_lookup(self):
         # Rank counts lookup (count -> list of ranks), sorted
         # -> easily find highest 4, 3, 2 of a kind
         # Only called once needed, since no sf,flush or straight found
@@ -36,7 +36,7 @@ class Hand:
         for count in self.counts_to_values:
             self.counts_to_values[count].sort(reverse=True)
 
-    async def _get_kickers(self, defining_card_ranks: List[int], num_kickers: int) -> List[int]:
+    def _get_kickers(self, defining_card_ranks: List[int], num_kickers: int) -> List[int]:
         # Get kickers (high cards)
         kickers = []
         defining_set = set(defining_card_ranks) # Faster lookups
@@ -47,7 +47,7 @@ class Hand:
                     break
         return kickers
 
-    async def _check_straight(self,ranks_sorted) -> Tuple[bool, Optional[CardNumber]]:
+    def _check_straight(self,ranks_sorted) -> Tuple[bool, Optional[CardNumber]]:
         # Check for normal straight
         for i in range(len(ranks_sorted) - 4):
             is_straight = True
@@ -66,7 +66,7 @@ class Hand:
 
         return False, None
 
-    async def _check_sf_flush_and_straight(self) -> Optional[HandValue]:
+    def _check_sf_flush_and_straight(self) -> Optional[HandValue]:
         best_flush_ranks: Optional[List[int]] = None
 
         # Check suits with 5+ cards for Flush / Straight Flush
@@ -76,7 +76,7 @@ class Hand:
                 suit_ranks = sorted([card.number for card in suit_cards], reverse=True)
 
                 # Check for Straight Flush using _check_straight
-                is_straight, high_card = await self._check_straight(suit_ranks)
+                is_straight, high_card = self._check_straight(suit_ranks)
                 if is_straight:
                     # Royal flush check
                     hand_type = 10 if high_card == CardNumber.ACE else 9
@@ -88,7 +88,7 @@ class Hand:
 
         # Use unique ranks across suits for straight check
         ranks = self.unique_ranks
-        is_straight, high_card = await self._check_straight(ranks)
+        is_straight, high_card = self._check_straight(ranks)
         if is_straight:
             # Return Straight
             return HandValue(5, high_card, -1, [])
@@ -97,11 +97,11 @@ class Hand:
         return None
 
 
-    async def _check_rank_based_hands(self) -> Optional[HandValue]:
+    def _check_rank_based_hands(self) -> Optional[HandValue]:
         # 4 of a Kind
         if 4 in self.counts_to_values:
             quad_rank = self.counts_to_values[4][0]
-            kickers = await self._get_kickers([quad_rank], 1)
+            kickers = self._get_kickers([quad_rank], 1)
             return HandValue(8, quad_rank, -1, kickers)
 
         # 3 of a kind or full house
@@ -118,45 +118,45 @@ class Hand:
             else:
                 # Not a Full House, return
                 trip_rank = self.counts_to_values[3][0]
-                kickers = await self._get_kickers([trip_rank], 2)
+                kickers = self._get_kickers([trip_rank], 2)
                 return HandValue(4, trip_rank, -1, kickers)
 
         # Two Pair
         if 2 in self.counts_to_values and len(self.counts_to_values[2]) >= 2:
             high_pair = self.counts_to_values[2][0]
             low_pair = self.counts_to_values[2][1]
-            kickers = await self._get_kickers([high_pair, low_pair], 1)
+            kickers = self._get_kickers([high_pair, low_pair], 1)
             return HandValue(3, high_pair, low_pair, kickers)
 
         # Pair
         if 2 in self.counts_to_values:
             # We know it's not Two Pair if we are here
             pair_rank = self.counts_to_values[2][0]
-            kickers = await self._get_kickers([pair_rank], 3)
+            kickers = self._get_kickers([pair_rank], 3)
             return HandValue(2, pair_rank, -1, kickers)
 
         # No rank-based hand
         return None 
 
-    async def _check_high_card(self) -> HandValue:
-        # Highest card and 4 next highest cards async define hand
+    def _check_high_card(self) -> HandValue:
+        # Highest card and 4 next highest cards define hand
         high_card = self.cards[0].number
         kickers = [card.number for card in self.cards[1:5]]
         return HandValue(1, high_card, -1, kickers)
 
-    async def check_hand_value(self) -> HandValue:
+    def check_hand_value(self) -> HandValue:
         # 1. Check for Flush variations (SF, Flush) and Straight first.
         # They are combined is because they all need to loop over the cards
         # Can Return, since they are better than any rank based hands that are still possible if they exist
-        flush_straight_sf_hand = await self._check_sf_flush_and_straight()
+        flush_straight_sf_hand = self._check_sf_flush_and_straight()
         if flush_straight_sf_hand:
             return flush_straight_sf_hand
 
         # 2. Check Rank-based hands (4K, FH, 3K, 2P, P)
-        await self._initialize_rank_based_lookup()
-        rank_hand = await self._check_rank_based_hands()
+        self._initialize_rank_based_lookup()
+        rank_hand = self._check_rank_based_hands()
         if rank_hand:
             return rank_hand
 
         # 3. High Card (Fallback)
-        return await self._check_high_card()
+        return self._check_high_card()
