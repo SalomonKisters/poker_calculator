@@ -16,9 +16,6 @@ hand_2 = Hand([Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMO
 
 print(hand_1.check_hand_value())
 print(hand_2.check_hand_value())
-print(hand_1.compare(hand_2))
-
-
 
 def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float]]:
     # Gewinnchancen jedes Spielers in momentaner Situation (table cards) berechnen
