@@ -19,7 +19,7 @@ print(hand_1.check_hand_value())
 print(hand_2.check_hand_value())
 
 def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float]]:
-    # Gewinnchancen jedes Spielers in momentaner Situation (table cards) berechnen
+    # Win chances each player current situation
     all_used_cards = table_cards + [card for player_cards in all_player_cards for card in player_cards]
     all_unused_cards = [card for card in get_all_cards() if card not in all_used_cards]
     
@@ -46,7 +46,7 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
         all_hand_values = [hand.check_hand_value() for hand in all_player_hands]
         best_hand_value = max(all_hand_values)
         
-        # Gewinner finden; Wenn mehrere -> Tie count inc
+        # Find winner, if multiple -> increase their tie amount
         best_hand_players = [j for j, value in enumerate(all_hand_values) if value == best_hand_value]
         if len(best_hand_players) == 1:
             player_wins[best_hand_players[0]] += card_amount
@@ -56,7 +56,7 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
         
         total_card_amount += card_amount
         
-        if i % 10000 == 0:
+        if i % 100000 == 0:
             print(f"Processed {round((i+1) / len(all_possible_table_cards_dict) * 100, 2)}% of all possible table cards")
     
     end_time = time.time()
@@ -65,20 +65,32 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
     win_percentages = [round(win / total_card_amount * 100, 2) for win in player_wins]
     tie_percentages = [round(tie / total_card_amount * 100, 2) for tie in player_ties]
     
-    # Resultate, mit total equity = win + (tie / number of players)
-    for i in range(len(all_player_cards)):
-        print(f'Player {i+1} wins {player_wins[i]} times or {win_percentages[i]}%')
-        print(f'Player {i+1} ties {player_ties[i]} times or {tie_percentages[i]}%')
-        total_equity = win_percentages[i] + (tie_percentages[i] / len(all_player_cards))
-        print(f'Player {i+1} total equity: {round(total_equity, 2)}%')
-        print('-' * 40)
-    
-    return win_percentages, tie_percentages
+    return win_percentages, tie_percentages, player_wins, player_ties
 
 start_cards_p2 = [Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMONDS)]
 start_cards_p1 = [Card(CardNumber.KING, Suit.CLUBS), Card(CardNumber.KING, Suit.DIAMONDS)]
 start_cards_p3 = [Card(CardNumber.QUEEN, Suit.CLUBS), Card(CardNumber.QUEEN, Suit.DIAMONDS)]
 start_cards_p4 = [Card(CardNumber.JACK, Suit.CLUBS), Card(CardNumber.JACK, Suit.DIAMONDS)]
 
-table_cards = [Card(CardNumber.KING, Suit.SPADES)]
-calc_odds([start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4], []) # 0.81s
+all_player_cards = [start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4]
+table_cards = []
+
+win_percentages, tie_percentages, player_wins, player_ties = calc_odds(all_player_cards, table_cards) # 0.81s
+
+# total equity = win + (tie / number of players)
+for i in range(len(all_player_cards)):
+    print(f'Player {i+1} wins {player_wins[i]} times or {win_percentages[i]}%')
+    print(f'Player {i+1} ties {player_ties[i]} times or {tie_percentages[i]}%')
+    total_equity = win_percentages[i] + (tie_percentages[i] / len(all_player_cards))
+    print(f'Player {i+1} total equity: {round(total_equity, 2)}%')
+    print('-' * 40)
+
+# TODO: Instead of calculating full values for both full hands:
+# 1. Calculate one step for each hand, if one returns and others dont, we know that one wins
+# 2. If none return, go to next step, etc. Until one or multiple return
+# Especially more efficient for more than 2 handed play. 
+# This would reduce the calculations to hands*number_of_checks_before_highest_hand returns
+# e.g. in 6 handed play, for 50% of 6 hands, rank-based hands would not have to be checked
+
+# TODO: Async calculation of hand values, etc. And later accumulation and comparison.
+# This would speed the process up number_of_cores times
