@@ -3,6 +3,7 @@ from modules.card import Suit, CardNumber, Card
 from modules.hand import Hand
 from modules.all_cards import get_all_cards, get_all_possible_table_cards, get_all_possible_table_cards_itertools
 import time
+import asyncio
 
 # Pair A A Q K 10 6 5
 hand_1 = Hand([Card(CardNumber.ACE, Suit.SPADES), Card(CardNumber.ACE, Suit.DIAMONDS), 
@@ -18,13 +19,13 @@ hand_2 = Hand([Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMO
 print(hand_1.check_hand_value())
 print(hand_2.check_hand_value())
 
-def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float]]:
+async def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float]]:
     # Win chances each player current situation
     all_used_cards = table_cards + [card for player_cards in all_player_cards for card in player_cards]
-    all_unused_cards = [card for card in get_all_cards() if card not in all_used_cards]
+    all_unused_cards = [card for card in await get_all_cards() if card not in all_used_cards]
     
     start_time = time.time()
-    all_possible_table_cards_dict = get_all_possible_table_cards(table_cards, all_unused_cards)
+    all_possible_table_cards_dict = await get_all_possible_table_cards_itertools(table_cards, all_unused_cards)
     end_time = time.time()
     print(f"Time taken to calculate all possible table cards: {round(end_time - start_time, 2)}s")
 
@@ -43,7 +44,7 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
             current_player_hand = Hand(all_cards)
             all_player_hands.append(current_player_hand)
         
-        all_hand_values = [hand.check_hand_value() for hand in all_player_hands]
+        all_hand_values = [await hand.check_hand_value() for hand in all_player_hands]
         best_hand_value = max(all_hand_values)
         
         # Find winner, if multiple -> increase their tie amount
@@ -75,7 +76,7 @@ start_cards_p4 = [Card(CardNumber.JACK, Suit.CLUBS), Card(CardNumber.JACK, Suit.
 all_player_cards = [start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4]
 table_cards = []
 
-win_percentages, tie_percentages, player_wins, player_ties = calc_odds(all_player_cards, table_cards) # 0.81s
+win_percentages, tie_percentages, player_wins, player_ties = asyncio.run(calc_odds(all_player_cards, table_cards))
 
 # total equity = win + (tie / number of players)
 for i in range(len(all_player_cards)):

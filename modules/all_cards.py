@@ -2,10 +2,10 @@ from typing import List, Dict, Tuple
 from .card import Suit, CardNumber, Card
 import itertools
 
-def get_all_cards() -> List[Card]:
+async def get_all_cards() -> List[Card]:
     return [Card(card_number, suit) for card_number in CardNumber for suit in Suit]
 
-def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+async def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
     """ Still very inefficient compared to itertools.combinations, but homemade = cooler"""
     remaining_cards = 5 - len(current_table_cards)
 
@@ -13,8 +13,6 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
         sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
         key = tuple((card.number, card.suit) for card in sorted_cards)
         return {key: (sorted_cards, 1)}
-
-    available_cards = [card for card in all_unused_cards if card not in current_table_cards]
 
     current_possible_table_cards_dict: Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]] = {}
     
@@ -59,7 +57,7 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
 
     return current_possible_table_cards_dict
 
-def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+async def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
     remaining_cards = 5 - len(current_table_cards)
     
     if remaining_cards <= 0:
