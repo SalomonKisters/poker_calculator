@@ -103,7 +103,7 @@ start_cards_p3 = [Card(CardNumber.QUEEN, Suit.CLUBS), Card(CardNumber.QUEEN, Sui
 start_cards_p4 = [Card(CardNumber.JACK, Suit.CLUBS), Card(CardNumber.JACK, Suit.DIAMONDS)]
 
 all_player_cards = [start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4]
-table_cards = []
+table_cards = [Card(CardNumber.JACK, Suit.SPADES)]
 
 win_percentages, tie_percentages, player_wins, player_ties = asyncio.run(calc_odds(all_player_cards, table_cards))
 
