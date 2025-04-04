@@ -37,7 +37,7 @@ Performance is optimized by:
 [x] For dict with unique table card combinations, implement more efficient hashing of list of cards, instead of using sorted string
 [-] Add asynchronous processing for improved performance
 [-] Try Multiprocessing instead of async processing
-[ ] Implement step[ ]by-step hand evaluation for faster multi-player calculations
+[ ] Implement step-by-step hand evaluation for faster multi-player calculations
 [ ] Create a user interface for easier interaction
 
 ## Requirements
