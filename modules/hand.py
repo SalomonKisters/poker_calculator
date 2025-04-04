@@ -47,7 +47,7 @@ class Hand:
                     break
         return kickers
 
-    def _check_straight(ranks_sorted) -> Tuple(bool, Optional[CardNumber]):
+    def _check_straight(self,ranks_sorted) -> Tuple[bool, Optional[CardNumber]]:
         # Check for normal straight
         for i in range(len(ranks_sorted) - 4):
             is_straight = True
@@ -57,7 +57,7 @@ class Hand:
                     # Enough checked for straight to be no longer possible
                     break
             if is_straight:
-                return True, suit_ranks[i]
+                return True, ranks_sorted[i]
 
         # Check for (A,5,4,3,2)
         ranks_set = set(ranks_sorted)
@@ -148,7 +148,7 @@ class Hand:
         # 1. Check for Flush variations (SF, Flush) and Straight first.
         # They are combined is because they all need to loop over the cards
         # Can Return, since they are better than any rank based hands that are still possible if they exist
-        flush_straight_sf_hand = self._check_flush_straight_and_sf()
+        flush_straight_sf_hand = self._check_sf_flush_and_straight()
         if flush_straight_sf_hand:
             return flush_straight_sf_hand
 
