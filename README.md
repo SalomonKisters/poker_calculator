@@ -39,6 +39,7 @@ Performance is optimized by:
 [-] Try Multiprocessing instead of async processing
 [ ] Implement step-by-step hand evaluation for faster multi-player calculations
 [ ] Create a user interface for easier interaction
+[ ] Add some kind of caching for table cards / already checked hand combinations (?)
 
 ## Requirements
 
