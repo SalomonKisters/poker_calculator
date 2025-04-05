@@ -19,27 +19,6 @@ A Python-based poker odds calculator that computes win probabilities and equity 
   - `all_cards.py` - Utilities for generating card combinations
   - `all_hands.py` - Hand generation utilities
 
-## Usage Example
-
-See main.py
-
-## How It Works
-
-The calculator uses a combinatorial approach to evaluate all possible board combinations given the known cards. It then determines the best 5-card hand for each player from their cards and the table cards, comparing them to find win/tie scenarios.
-
-Performance is optimized by:
-1. Efficiently generating card combinations using itertools
-2. Using fast hand evaluation algorithms, and only calculating until best possible combination is found
-3. Tracking win/tie counts for accurate probability calculations
-
-## Future Improvements
-
-[x] For dict with unique table card combinations, implement more efficient hashing of list of cards, instead of using sorted string
-[-] Add asynchronous processing for improved performance
-[-] Try Multiprocessing instead of async processing
-[ ] Implement step-by-step hand evaluation for faster multi-player calculations
-[ ] Create a user interface for easier interaction
-
 ## Requirements
 
 - Python 3.9+
