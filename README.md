@@ -38,7 +38,7 @@ Performance is optimized by:
 [-] Add asynchronous processing for improved performance
 [-] Try Multiprocessing instead of async processing
 [ ] Implement step-by-step hand evaluation for faster multi-player calculations
-[ ] Create a user interface for easier interaction
+[x] Create a user interface for easier interaction
 
 ## Requirements
 

@@ -67,24 +67,7 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
     
     return win_percentages, tie_percentages, player_wins, player_ties
 
-start_cards_p2 = [Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMONDS)]
-start_cards_p1 = [Card(CardNumber.KING, Suit.CLUBS), Card(CardNumber.KING, Suit.DIAMONDS)]
-start_cards_p3 = [Card(CardNumber.QUEEN, Suit.CLUBS), Card(CardNumber.QUEEN, Suit.DIAMONDS)]
-start_cards_p4 = [Card(CardNumber.JACK, Suit.CLUBS), Card(CardNumber.JACK, Suit.DIAMONDS)]
-
-all_player_cards = [start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4]
-table_cards = []
-
-win_percentages, tie_percentages, player_wins, player_ties = calc_odds(all_player_cards, table_cards) # 0.81s
-
-# total equity = win + (tie / number of players)
-for i in range(len(all_player_cards)):
-    print(f'Player {i+1} wins {player_wins[i]} times or {win_percentages[i]}%')
-    print(f'Player {i+1} ties {player_ties[i]} times or {tie_percentages[i]}%')
-    total_equity = win_percentages[i] + (tie_percentages[i] / len(all_player_cards))
-    print(f'Player {i+1} total equity: {round(total_equity, 2)}%')
-    print('-' * 40)
-
+    
 # TODO: Instead of calculating full values for both full hands:
 # 1. Calculate one step for each hand, if one returns and others dont, we know that one wins
 # 2. If none return, go to next step, etc. Until one or multiple return

@@ -14,8 +14,6 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
         key = tuple((card.number, card.suit) for card in sorted_cards)
         return {key: (sorted_cards, 1)}
 
-    available_cards = [card for card in all_unused_cards if card not in current_table_cards]
-
     current_possible_table_cards_dict: Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]] = {}
     
     # Create a copy to avoid modifying the original list
