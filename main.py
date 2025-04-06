@@ -32,21 +32,33 @@ def main():
 
     all_player_cards = [start_cards_p1, start_cards_p2, start_cards_p3, start_cards_p4]
     table_cards = []
-    division = 16 # Note: this does have a large overhead (div 2 takes 8.8s, div 8 takes 10.5s, 16 takes 13s, 32 takes 17s) -> recommended: 16 for min overhead and results in <1s
-    
+    # Multiple of 2!!!
+    division = 64
+
+
+    current_amount = 1
+    prev_max_numerator = 0
+    numerators_to_check = [prev_max_numerator]
     check_validity(all_player_cards, table_cards)
-    total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties = calc_odds(all_player_cards, table_cards, division=division, numerator_to_check=0)
+    total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties = calc_odds(all_player_cards, table_cards, division=division, numerators_to_check=numerators_to_check)
     display_results(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties)
 
-    for i in range(1, division):
-        print(f"\nProcessing division {i}")
-        win_percentages, tie_percentages, player_wins, player_ties = calc_odds(all_player_cards, table_cards, division=division, numerator_to_check=i)
+    # Start with 1 and double each time, to get almost instant first estimate, getting better iteratively.
+    # This is, because keeping it linear, you either get a slow first result or a slow final result due to overhead of doing it 64 times for a small list
+    while prev_max_numerator < division - 1:
+        current_max_numerator = prev_max_numerator + current_amount
+        current_numerators_to_check = list(range(prev_max_numerator + 1, current_max_numerator + 1))
+        print(f"{current_numerators_to_check}")
+        win_percentages, tie_percentages, player_wins, player_ties = calc_odds(all_player_cards, table_cards, division=division, numerators_to_check=current_numerators_to_check)
         for j in range(len(all_player_cards)):
-            total_win_percentages[j] = (total_win_percentages[j] * (i-1) + win_percentages[j]) / i
-            total_tie_percentages[j] = (total_tie_percentages[j] * (i-1) + tie_percentages[j]) / i
+            total_win_percentages[j] = (total_win_percentages[j] * (current_amount-1) + win_percentages[j] * current_amount) / (current_amount*2-1)
+            total_tie_percentages[j] = (total_tie_percentages[j] * (current_amount-1) + tie_percentages[j] * current_amount) / (current_amount*2-1)
             total_player_wins[j] = total_player_wins[j] + player_wins[j]
             total_player_ties[j] = total_player_ties[j] + player_ties[j]
         display_results(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties)
+        prev_max_numerator = current_max_numerator
+        current_amount *= 2
+
 
 if __name__ == "__main__":
     # This is required for multiprocessing to work correctly on Windows
