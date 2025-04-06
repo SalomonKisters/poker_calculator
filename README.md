@@ -6,22 +6,26 @@ A Python-based poker odds calculator that computes win probabilities and equity 
 
 - Calculate exact win percentages and tie percentages for multiple players
 - Support for pre-flop, flop, turn, and river calculations
-- Fast computation using optimized algorithms
-- Detailed hand evaluation based on poker hand rankings
+- Fast computation using optimized algorithms (lazy evaluation in hand comparison) and multiprocessing
+- Moving average implementation for quick results, getting better with time, especially important for pre-flop, where the number of possible board combinations is large
+- Detailed hand evaluation with win chance, tie chance, and equity
 
 ## Project Structure
 
 - `main.py` - Main script with example calculations
+- `gui.py` - GUI script
 - `modules/` - Core functionality modules:
   - `card.py` - Card representation with suits and numbers
-  - `hand.py` - Hand evaluation and comparison
+  - `hand.py` - Hand evaluation
+  - `calculator.py` - Multithreaded hand comparison, and odds calcultion
   - `hand_value.py` - Poker hand value calculations
+  - `utils.py` - Utility functions for calculations and printing results
   - `all_cards.py` - Utilities for generating card combinations
-  - `all_hands.py` - Hand generation utilities
+  - `all_hands.py` - Hand generation utilities (mainly getting all table cards)
 
-## Usage Example
+## Usage
 
-See main.py
+python gui.py
 
 ## How It Works
 
@@ -31,6 +35,8 @@ Performance is optimized by:
 1. Efficiently generating card combinations using itertools
 2. Using fast hand evaluation algorithms, and only calculating until best possible combination is found
 3. Tracking win/tie counts for accurate probability calculations
+4. Using multiprocessing for parallel processing
+5. Using moving average for quick results, getting better with time
 
 ## Future Improvements
 
@@ -40,7 +46,7 @@ Performance is optimized by:
 [x] Implement step-by-step hand evaluation for faster multi-player calculations
 [x] Create moving average implementation for quick results, getting better with time
 [x] Create a user interface for easier interaction
-[ ] Better GUI (See lenitl pr)
+[ ] Better GUI (See lenitl pull request)
 
 ## Potential improvements to research
 
