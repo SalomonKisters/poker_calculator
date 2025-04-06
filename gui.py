@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from modules.card import Suit, CardNumber, Card
 from modules.calculator import calc_odds
-from modules.utils import check_validity
+from modules.utils import check_validity, get_results_str
 import multiprocessing as mp
 import time
 import threading
@@ -237,15 +237,8 @@ class PokerCalculatorGUI:
     
     def display_results(self, all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties):
         self.results_text.delete(1.0, tk.END)
-        
-        for j in range(len(all_player_cards)):
-            result = f'Player {j+1} wins {total_player_wins[j]} times or {round(total_win_percentages[j], 2)}%\n'
-            result += f'Player {j+1} ties {total_player_ties[j]} times or {round(total_tie_percentages[j], 2)}%\n'
-            total_equity = total_win_percentages[j] + (total_tie_percentages[j] / len(all_player_cards))
-            result += f'Player {j+1} total equity: {round(total_equity, 2)}%\n'
-            result += '-' * 40 + '\n'
-            
-            self.results_text.insert(tk.END, result)
+        result = get_results_str(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties)
+        self.results_text.insert(tk.END, result)
     
     def update_progress(self, current, total):
         progress = (current / total) * 100
@@ -273,7 +266,7 @@ class PokerCalculatorGUI:
             
             check_validity(all_player_cards, table_cards)
             # Moving average only needed for 0 table cards, otherwise its overhead outweighs the benefits
-            if len(all_player_cards) != 0:
+            if len(table_cards) != 0:
                 division = 1
             
             # Initial calculation
@@ -335,7 +328,4 @@ def main():
 if __name__ == "__main__":
     # This is required for multiprocessing to work correctly on Windows
     mp.freeze_support()
-    start_time = time.time()
     main()
-    end_time = time.time()
-    print(f"Total time taken: {round(end_time - start_time, 2)}s")

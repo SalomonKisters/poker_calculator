@@ -1,10 +1,12 @@
-def display_results(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties):
+def get_results_str(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties):
+    result_str = ""
     for j in range(len(all_player_cards)):
-        print(f'Player {j+1} wins {total_player_wins[j]} times or {round(total_win_percentages[j], 2)}%')
-        print(f'Player {j+1} ties {total_player_ties[j]} times or {round(total_tie_percentages[j], 2)}%')
+        result_str += f'Player {j+1} wins {total_player_wins[j]} times or {round(total_win_percentages[j], 2)}%\n'
+        result_str += f'Player {j+1} ties {total_player_ties[j]} times or {round(total_tie_percentages[j], 2)}%\n'
         total_equity = total_win_percentages[j] + (total_tie_percentages[j] / len(all_player_cards))
-        print(f'Player {j+1} total equity: {round(total_equity, 2)}%')
-        print('-' * 40)
+        result_str += f'Player {j+1} total equity: {round(total_equity, 2)}%\n'
+        result_str += '-' * 40 + '\n'
+    return result_str
 
 def check_validity(all_player_cards, table_cards):
     # Check for duplicate cards

@@ -2,7 +2,7 @@ from modules.card import Suit, CardNumber, Card
 from modules.calculator import calc_odds
 import multiprocessing as mp
 import time
-from modules.utils import display_results, check_validity
+from modules.utils import get_results_str, check_validity
 
 def main():
     start_cards_p2 = [Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMONDS)]
@@ -15,7 +15,7 @@ def main():
     # Multiple of 2!!!
     division = 64
     # Moving average only needed for 0 table cards, otherwise its overhead outweighs the benefits
-    if len(all_player_cards) != 0:
+    if len(table_cards) != 0:
         division = 1
 
     current_amount = 1
@@ -23,7 +23,7 @@ def main():
     numerators_to_check = [prev_max_numerator]
     check_validity(all_player_cards, table_cards)
     total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties = calc_odds(all_player_cards, table_cards, division=division, numerators_to_check=numerators_to_check)
-    display_results(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties)
+    print(get_results_str(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties))
     print(f"progress: {prev_max_numerator+1}/{division}")
     
     # Start with 1 and double each time, to get almost instant first estimate, getting better iteratively.
@@ -39,7 +39,7 @@ def main():
             total_player_ties[j] = total_player_ties[j] + player_ties[j]
         prev_max_numerator = current_max_numerator
         current_amount *= 2
-        display_results(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties)
+        print(get_results_str(all_player_cards, total_win_percentages, total_tie_percentages, total_player_wins, total_player_ties))
         print(f"progress: {prev_max_numerator+1}/{division}")
 
 if __name__ == "__main__":
