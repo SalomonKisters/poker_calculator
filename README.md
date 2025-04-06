@@ -40,6 +40,7 @@ Performance is optimized by:
 [x] Implement step-by-step hand evaluation for faster multi-player calculations
 [x] Create moving average implementation for quick results, getting better with time
 [x] Create a user interface for easier interaction
+[ ] Better GUI (See lenitl pr)
 
 ## Potential improvements to research
 
