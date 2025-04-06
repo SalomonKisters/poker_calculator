@@ -11,11 +11,11 @@ class PokerCalculatorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Poker Odds Calculator")
-        self.root.geometry("800x600")
+        self.root.geometry("800x800")
         self.root.resizable(True, True)
         
         self.num_players = tk.IntVar(value=2)
-        self.division = tk.IntVar(value=32)
+        self.division = tk.IntVar(value=64)
         self.players_cards = []
         self.table_cards = []
         self.progress_var = tk.DoubleVar(value=0)
@@ -52,7 +52,7 @@ class PokerCalculatorGUI:
         ttk.Button(self.settings_frame, text="Update", command=self.update_player_frames).grid(row=0, column=2, padx=5, pady=5)
         
         # Division (calculation accuracy)
-        ttk.Label(self.settings_frame, text="Calculation Accuracy:").grid(row=0, column=3, padx=5, pady=5)
+        ttk.Label(self.settings_frame, text="Calculation Division:").grid(row=0, column=3, padx=5, pady=5)
         ttk.Spinbox(self.settings_frame, from_=4, to=256, increment=4, textvariable=self.division, width=5).grid(row=0, column=4, padx=5, pady=5)
         
         # Calculate button
