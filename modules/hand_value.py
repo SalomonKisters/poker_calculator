@@ -1,6 +1,23 @@
 from typing import List
 from .all_hands import poker_hands
 from .card import CardNumber
+from enum import Enum
+
+class HandType(Enum):
+    HIGH_CARD = 0
+    PAIR = 1
+    TWO_PAIR = 2
+    THREE_OF_A_KIND = 3
+    STRAIGHT = 4
+    FLUSH = 5
+    FULL_HOUSE = 6
+    FOUR_OF_A_KIND = 7
+    STRAIGHT_FLUSH = 8
+    ROYAL_FLUSH = 9
+    
+    def __str__(self):
+        # Map the enum value to the corresponding poker hand name
+        return str(poker_hands[self.value + 1])
 
 class HandValue:
     type_value : int
@@ -31,20 +48,14 @@ class HandValue:
     
     def __str__(self):
         Type = f'Type: {poker_hands[self.type_value].name}'
-        if self.high_card_in_type_value != -1:
+        high_card_in_type = second_high_card_in_type = ''
+        if self.high_card_in_type_value:
             high_card_in_type = f', High card in type: {CardNumber(self.high_card_in_type_value).name}'
-        else:
-            high_card_in_type = ''
         
-        if self.second_high_card_in_type_value != -1:
+        if self.second_high_card_in_type_value:
             second_high_card_in_type = f', Second high card in type: {CardNumber(self.second_high_card_in_type_value).name}'
-        else:
-            second_high_card_in_type = ''
-
-        if self.high_cards != []:
+        if self.high_cards and self.high_cards != []:
             high_cards = f', High cards: {[card.name for card in self.high_cards]}'
-        else:
-            high_cards = ''
         return f'{Type}{high_card_in_type}{second_high_card_in_type}{high_cards}'
 
     def __eq__(self, other):

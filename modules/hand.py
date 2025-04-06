@@ -1,9 +1,7 @@
 from typing import List, Dict, Optional, Tuple
-from collections import Counter, defaultdict # Import defaultdict
-
-# Assuming these imports exist and work as expected
+from collections import Counter, defaultdict
 from .card import Suit, CardNumber, Card
-from .hand_value import HandValue, HandType # Assuming HandType enum exists if needed by HandValue
+from .hand_value import HandValue, HandType
 
 class Hand:
     def __init__(self, cards : List[Card]):
