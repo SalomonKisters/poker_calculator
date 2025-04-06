@@ -10,17 +10,6 @@ So accuracy is +- 0.1%
 - Fast computation using optimized algorithms
 - Detailed hand evaluation based on poker hand rankings
 
-## Project Structure
-
-- `main.py` - Main script with example calculations
-- `modules/` - Core functionality modules:
-  - `card.py` - Card representation with suits and numbers
-  - `hand.py` - Hand evaluation and comparison
-  - `hand_value.py` - Poker hand value calculations
-  - `all_cards.py` - Utilities for generating card combinations
-  - `all_hands.py` - Hand generation utilities
-
-
 ## Requirements
 
 - Python 3.9+
