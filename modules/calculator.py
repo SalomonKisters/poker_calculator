@@ -4,7 +4,30 @@ from modules.hand import Hand
 from modules.all_cards import get_all_cards, get_all_possible_table_cards_itertools
 import time
 
+def get_table_results(table_cards, card_amount, all_player_cards):
+    all_player_hands = []
+        
+    player_wins = [0] * len(all_player_cards)
+    player_ties = [0] * len(all_player_cards)
 
+    # hand = combination of player cards and table cards
+    for player_cards in all_player_cards:
+        all_cards = player_cards + table_cards
+        current_player_hand = Hand(all_cards)
+        all_player_hands.append(current_player_hand)
+
+    hand_values = [hand.check_hand_value() for hand in all_player_hands]
+    
+    # Find winner, if multiple -> increase their tie amount
+    best_hand_players = [j for j, value in enumerate(hand_values) if value == max(hand_values)]
+    if len(best_hand_players) == 1:
+        player_wins[best_hand_players[0]] += card_amount
+    else:
+        for player_idx in best_hand_players:
+            player_ties[player_idx] += card_amount
+
+    return player_wins, player_ties
+    
 
 def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float]]:
     # Win chances each player current situation
@@ -16,32 +39,18 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
     end_time = time.time()
     print(f"Time taken to calculate all possible table cards: {round(end_time - start_time, 2)}s")
 
-    player_wins = [0] * len(all_player_cards)
-    player_ties = [0] * len(all_player_cards)
+    total_player_wins = [0] * len(all_player_cards)
+    total_player_ties = [0] * len(all_player_cards)
     total_card_amount = 0
     start_time = time.time()
     
     for i, table_cards_str in enumerate(all_possible_table_cards_dict.keys()):
         table_cards, card_amount = all_possible_table_cards_dict[table_cards_str]
-        all_player_hands = []
-        
-        # Hand = Kombination aus Spielerkarten und Tischkarten
-        for player_cards in all_player_cards:
-            all_cards = player_cards + table_cards
-            current_player_hand = Hand(all_cards)
-            all_player_hands.append(current_player_hand)
-        
-        all_hand_values = [hand.check_hand_value() for hand in all_player_hands]
-        best_hand_value = max(all_hand_values)
-        
-        # Find winner, if multiple -> increase their tie amount
-        best_hand_players = [j for j, value in enumerate(all_hand_values) if value == best_hand_value]
-        if len(best_hand_players) == 1:
-            player_wins[best_hand_players[0]] += card_amount
-        else:
-            for player_idx in best_hand_players:
-                player_ties[player_idx] += card_amount
-        
+
+        player_wins, player_ties = get_table_results(table_cards, card_amount, all_player_cards)
+        total_player_wins = [total + player for total, player in zip(total_player_wins, player_wins)]
+        total_player_ties = [total + player for total, player in zip(total_player_ties, player_ties)]
+
         total_card_amount += card_amount
         
         if i % 100000 == 0:
