@@ -1,9 +1,9 @@
 from typing import List
 from .all_hands import poker_hands
 from .card import CardNumber
-from enum import Enum
+from enum import IntEnum
 
-class HandType(Enum):
+class HandType(IntEnum):
     HIGH_CARD = 0
     PAIR = 1
     TWO_PAIR = 2

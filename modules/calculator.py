@@ -1,12 +1,55 @@
 from typing import List, Tuple, Callable, Optional
 from modules.card import Card
-from modules.hand import Hand
+from modules.hand import Hand, HandValue
 from modules.all_cards import get_all_cards, get_all_possible_table_cards_itertools
 import time
-import os
 import multiprocessing as mp
 from multiprocessing import Pool
 from functools import partial
+
+def compare_hands(all_player_hands: List[Hand]) -> List[Hand]:
+    winners = []
+    highest_win = HandValue(-1, -1, -1, [])
+
+    # Check for highest hand value
+    for i, hand in enumerate(all_player_hands):
+        value = hand._check_sf_flush_and_straight(highest_win_type = highest_win.type_value)
+        if value is not None:
+            if value > highest_win:
+                highest_win = value
+                winners = [i]
+            elif value == highest_win:
+                winners.append(i)
+
+    if winners != []:
+        return winners
+
+    # Check for highest hand value
+    for i, hand in enumerate(all_player_hands):
+        hand._initialize_rank_based_lookup()
+        value = hand._check_rank_based_hands(highest_win_type = highest_win.type_value)
+        if value is not None:
+            if value > highest_win:
+                highest_win = value
+                winners = [i]
+            elif value == highest_win:
+                winners.append(i)
+
+    if winners != []:
+        return winners
+    
+    # Check for highest hand value
+    for i, hand in enumerate(all_player_hands):
+        value = hand._check_high_card()
+        if value is not None:
+            if value > highest_win:
+                highest_win = value
+                winners = [i]
+            elif value == highest_win:
+                winners.append(i)
+
+    if winners != []:
+        return winners
 
 def get_table_results(table_cards, card_amount, all_player_cards):
     all_player_hands = []
@@ -20,10 +63,8 @@ def get_table_results(table_cards, card_amount, all_player_cards):
         current_player_hand = Hand(all_cards)
         all_player_hands.append(current_player_hand)
 
-    hand_values = [hand.check_hand_value() for hand in all_player_hands]
-    
     # Find winner, if multiple -> increase their tie amount
-    best_hand_players = [j for j, value in enumerate(hand_values) if value == max(hand_values)]
+    best_hand_players = compare_hands(all_player_hands)
     if len(best_hand_players) == 1:
         player_wins[best_hand_players[0]] += card_amount
     else:

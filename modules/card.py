@@ -1,7 +1,6 @@
-from enum import Enum, auto
-import enum
+from enum import IntEnum, auto
 
-class Suit(enum.IntEnum):
+class Suit(IntEnum):
     CLUBS = auto()
     DIAMONDS = auto()
     HEARTS = auto()
@@ -20,7 +19,7 @@ class Suit(enum.IntEnum):
         elif self == Suit.SPADES:
             return "♠"
 
-class CardNumber(enum.IntEnum):
+class CardNumber(IntEnum):
     TWO = 2
     THREE = 3
     FOUR = 4

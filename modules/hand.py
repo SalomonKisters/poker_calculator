@@ -79,7 +79,9 @@ class Hand:
         return False, None
 
 
-    def _check_sf_flush_and_straight(self) -> Optional[HandValue]:
+    def _check_sf_flush_and_straight(self, highest_win_type : HandType) -> Optional[HandValue]:
+        if highest_win_type >= HandType.ROYAL_FLUSH:
+            return None
         for suit in self.suit_counts:
             if self.suit_counts[suit] >= 5:
                 suit_ranks: List[CardNumber] = [card.number for card in self.cards_by_suit[suit]]
@@ -94,21 +96,28 @@ class Hand:
                     primary_rank = sf_high_card if not is_royal else CardNumber.ACE # Or some convention
                     return HandValue(hand_type.value, primary_rank, None, [])
 
+                if highest_win_type >= HandType.STRAIGHT_FLUSH:
+                    return None
+
                 # If not a Straight Flush, it must be at least a Flush
                 # The 5 highest cards of the suit define the flush
                 flush_ranks = suit_ranks[:5]
                 return HandValue(HandType.FLUSH.value, flush_ranks[0], None, flush_ranks[1:]) # Use None for secondary rank
+
+        if highest_win_type >= HandType.FLUSH:
+            return None
 
         # No flush found, check for regular Straight using all unique ranks
         is_straight, straight_high_card = self._check_straight(self.unique_ranks)
         if is_straight:
             return HandValue(HandType.STRAIGHT.value, straight_high_card, None, [])
 
+
         # No SF, Flush, or Straight found
         return None
 
 
-    def _check_rank_based_hands(self) -> Optional[HandValue]:
+    def _check_rank_based_hands(self, highest_win_type : HandType) -> Optional[HandValue]:
         if self.counts_to_values is None:
             raise RuntimeError("_initialize_rank_based_lookup must be called before _check_rank_based_hands") # Should not happen in normal flow
 
@@ -117,6 +126,9 @@ class Hand:
             quad_rank = self.counts_to_values[4][0] # Highest quad rank
             kickers = self._get_kickers([quad_rank], 1)
             return HandValue(HandType.FOUR_OF_A_KIND.value, quad_rank, None, kickers)
+
+        if highest_win_type >= HandType.FOUR_OF_A_KIND:
+            return None
 
         # Full House or 3 of a Kind
         if 3 in self.counts_to_values:
@@ -133,8 +145,13 @@ class Hand:
                 return HandValue(HandType.FULL_HOUSE.value, rank3, rank2, [])
             # Otherwise, it's just 3 of a Kind
             else:
+                if highest_win_type >= HandType.THREE_OF_A_KIND:
+                    return None
                 kickers = self._get_kickers([rank3], 2)
                 return HandValue(HandType.THREE_OF_A_KIND.value, rank3, None, kickers)
+
+        if highest_win_type >= HandType.THREE_OF_A_KIND:
+            return None
 
         # Two Pair
         if 2 in self.counts_to_values and len(self.counts_to_values[2]) >= 2:
@@ -142,6 +159,9 @@ class Hand:
             low_pair_rank = self.counts_to_values[2][1]
             kickers = self._get_kickers([high_pair_rank, low_pair_rank], 1)
             return HandValue(HandType.TWO_PAIR.value, high_pair_rank, low_pair_rank, kickers)
+
+        if highest_win_type >= HandType.TWO_PAIR:
+            return None
 
         # One Pair
         if 2 in self.counts_to_values:
@@ -162,7 +182,8 @@ class Hand:
     def check_hand_value(self) -> HandValue:
         # 1. Check for flush-based hands (SF, Flush) and Straights first.
         # These outrank all pair-based hands.
-        best_hand = self._check_sf_flush_and_straight()
+        highest_win_type = HandType.HIGH_CARD
+        best_hand = self._check_sf_flush_and_straight(highest_win_type = highest_win_type)
         if best_hand:
             return best_hand
 
@@ -170,7 +191,7 @@ class Hand:
         self._initialize_rank_based_lookup()
 
         # 3. Check Rank-based hands (4K, FH, 3K, 2P, P) in descending order of rank.
-        best_hand = self._check_rank_based_hands()
+        best_hand = self._check_rank_based_hands(highest_win_type = highest_win_type)
         if best_hand:
             return best_hand
 
