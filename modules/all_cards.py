@@ -136,7 +136,7 @@ def get_sampled_table_cards_by_division(
     
     # Get the combination at the target index
     for i, additional_cards_tuple in enumerate(itertools.combinations(available_cards, remaining_cards)):
-        if i % division == numerator_to_check - 1:
+        if i % division == numerator_to_check:
             # Create the full table and sort the cards
             full_table = current_table_cards + list(additional_cards_tuple)
             sorted_cards = sorted(full_table, key=lambda card: (card.number, card.suit))
