@@ -9,7 +9,9 @@ def get_all_cards() -> List[Card]:
     return [Card(card_number, suit) for card_number in CardNumber for suit in Suit]
 
 def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
-    """ Still very inefficient compared to itertools.combinations, but homemade = cooler"""
+    """ 
+    Still very inefficient compared to itertools.combinations, but homemade = cooler
+    """
     remaining_cards = 5 - len(current_table_cards)
 
     if remaining_cards <= 0:
@@ -67,6 +69,9 @@ def get_sampled_table_cards(
     all_unused_cards: List[Card],
     sample_size: int = 100000
 ) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+    """
+    Samples a specific amount of random table combinations.
+    """
 
     remaining_cards = 5 - len(current_table_cards)
 
@@ -107,3 +112,37 @@ def get_sampled_table_cards(
                 break
 
     return sampled_combinations_dict
+
+
+def get_sampled_table_cards_by_division(
+    current_table_cards: List[Card],
+    all_unused_cards: List[Card],
+    division: int,
+    numerator_to_check: int,
+    previously_sampled_indices: Optional[set] = set()
+) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+    """
+    Samples table combinations at specific fractional intervals.
+    """    
+    remaining_cards = 5 - len(current_table_cards)
+    result_dict = {}
+
+    if remaining_cards <= 0:
+        sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
+        key = tuple((card.number, card.suit) for card in sorted_cards)
+        return {key: (sorted_cards, 1)}
+
+    available_cards = [card for card in all_unused_cards if card not in current_table_cards]
+    
+    # Get the combination at the target index
+    for i, additional_cards_tuple in enumerate(itertools.combinations(available_cards, remaining_cards)):
+        if i % division == numerator_to_check - 1:
+            # Create the full table and sort the cards
+            full_table = current_table_cards + list(additional_cards_tuple)
+            sorted_cards = sorted(full_table, key=lambda card: (card.number, card.suit))
+            key = tuple((card.number, card.suit) for card in sorted_cards)
+            
+            # Add to the result dictionary
+            result_dict[key] = (sorted_cards, 1)
+    
+    return result_dict

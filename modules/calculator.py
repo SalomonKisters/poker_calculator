@@ -1,7 +1,7 @@
 from typing import List, Tuple, Callable, Optional
 from modules.card import Card
 from modules.hand import Hand, HandValue
-from modules.all_cards import get_all_cards, get_sampled_table_cards
+from modules.all_cards import get_all_cards, get_sampled_table_cards, get_sampled_table_cards_by_division
 import time
 import multiprocessing as mp
 from multiprocessing import Pool
@@ -87,13 +87,13 @@ def process_batch(batch_items, all_player_cards):
         batch_card_amount += card_amount
     return batch_wins, batch_ties, batch_card_amount
 
-def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tuple[List[float], List[float], List[int], List[int]]:
+def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card], division: int, numerator_to_check: int) -> Tuple[List[float], List[float], List[int], List[int]]:
     # Win chances each player current situation
     all_used_cards = table_cards + [card for player_cards in all_player_cards for card in player_cards]
     all_unused_cards = [card for card in get_all_cards() if card not in all_used_cards]
     
     start_time = time.time()
-    all_possible_table_cards_dict = get_sampled_table_cards(table_cards, all_unused_cards)
+    all_possible_table_cards_dict = get_sampled_table_cards_by_division(table_cards, all_unused_cards, division=division, numerator_to_check=numerator_to_check)
     end_time = time.time()
     print(f"Time taken to calculate all possible table cards: {round(end_time - start_time, 2)}s")
     print(f"Total possible table card combinations: {len(all_possible_table_cards_dict)}")
@@ -136,7 +136,7 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card]) -> Tu
     end_time = time.time()
     print(f"Time taken to calculate player wins for all possible table cards: {round(end_time - start_time, 2)}s")
 
-    win_percentages = [round(win / total_card_amount * 100, 2) for win in total_player_wins]
-    tie_percentages = [round(tie / total_card_amount * 100, 2) for tie in total_player_ties]
+    win_percentages = [win / total_card_amount * 100 for win in total_player_wins]
+    tie_percentages = [tie / total_card_amount * 100 for tie in total_player_ties]
     
     return win_percentages, tie_percentages, total_player_wins, total_player_ties
