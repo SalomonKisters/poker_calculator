@@ -40,20 +40,20 @@ Performance is optimized by:
 
 ## Future Improvements
 
-[x] For dict with unique table card combinations, implement more efficient hashing of list of cards, instead of using sorted string
-[x] Add asynchronous processing for improved performance
-[x] Try Multiprocessing instead of async processing
-[x] Implement step-by-step hand evaluation for faster multi-player calculations
-[x] Create moving average implementation for quick results, getting better with time
-[x] Create a user interface for easier interaction
-[ ] Better GUI (See lenitl pull request)
+- [x] For dict with unique table card combinations, implement more efficient hashing of list of cards, instead of using sorted string
+- [x] Add asynchronous processing for improved performance
+- [x] Try Multiprocessing instead of async processing
+- [x] Implement step-by-step hand evaluation for faster multi-player calculations
+- [x] Create moving average implementation for quick results, getting better with time
+- [x] Create a user interface for easier interaction
+- [ ] Better GUI (See lenitl pull request)
 
 ## Potential improvements to research
 
-[ ] Implement comparison of hands by comparing 6-card hands first, and for both, checking what cards would improve the hand. Give current winner all wins where the other doesnt improve or doesnt improve enough to beat the current winner. Then check all 7-handed hands that would improve the loser. Give the original loser all wins where the original winner doesnt improve.
-[ ] Seperate selection for each of the table card combinations in one step, so not all possibilities are gone over every time (not sure if this is needed, since it will slow down initial calculations again)
-[ ] Add some kind of caching for table cards / already checked hand combinations
-[ ] Benchmark cached 5 card eval approach vs current approach
+- [ ] Implement comparison of hands by comparing 6-card hands first, and for both, checking what cards would improve the hand. Give current winner all wins where the other doesnt improve or doesnt improve enough to beat the current winner. Then check all 7-handed hands that would improve the loser. Give the original loser all wins where the original winner doesnt improve.
+- [ ] Seperate selection for each of the table card combinations in one step, so not all possibilities are gone over every time (not sure if this is needed, since it will slow down initial calculations again)
+- [ ] Add some kind of caching for table cards / already checked hand combinations
+- [ ] Benchmark cached 5 card eval approach vs current approach
 
 ## Requirements
 
