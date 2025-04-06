@@ -18,3 +18,6 @@ def check_validity(all_player_cards, table_cards):
     
     if len(table_cards) > 5:
         raise ValueError("table_cards must contain 5 or fewer cards")
+
+    if len(table_cards) not in [0,3,4,5]:
+        raise ValueError(f"In Texas Holdem, there can never be {len(table_cards)} cards on the table")

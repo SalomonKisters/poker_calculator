@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from modules.card import Suit, CardNumber, Card
 from modules.calculator import calc_odds
+from modules.utils import check_validity
 import multiprocessing as mp
 import time
 import threading
@@ -223,10 +224,6 @@ class PokerCalculatorGUI:
                 if card:
                     player_cards.append(card)
             
-            if len(player_cards) != 2:
-                messagebox.showerror("Error", f"Each player must have exactly 2 cards.")
-                return None, None
-            
             all_player_cards.append(player_cards)
         
         # Collect table cards
@@ -235,12 +232,6 @@ class PokerCalculatorGUI:
             card = self.get_card_from_vars(number_var, suit_var)
             if card:
                 table_cards.append(card)
-        
-        # Check for duplicate cards
-        all_cards = [card for player_cards in all_player_cards for card in player_cards] + table_cards
-        if len(all_cards) != len(set(all_cards)):
-            messagebox.showerror("Error", "Duplicate cards found. Each card can only be used once.")
-            return None, None
         
         return all_player_cards, table_cards
     
@@ -277,11 +268,14 @@ class PokerCalculatorGUI:
     def run_calculation(self, all_player_cards, table_cards):
         start_time = time.time()
         division = self.division.get()
-        # Moving average only needed for 0 table cards, otherwise its overhead outweighs the benefits
-        if len(all_player_cards) != 0:
-            division = 1
-        
+
         try:
+            
+            check_validity(all_player_cards, table_cards)
+            # Moving average only needed for 0 table cards, otherwise its overhead outweighs the benefits
+            if len(all_player_cards) != 0:
+                division = 1
+            
             # Initial calculation
             current_amount = 1
             prev_max_numerator = 0
@@ -317,7 +311,7 @@ class PokerCalculatorGUI:
                 
                 # Update UI
                 self.root.after(0, lambda win=total_win_percentages, tie=total_tie_percentages, 
-                                     p_win=total_player_wins, p_tie=total_player_ties: 
+                                        p_win=total_player_wins, p_tie=total_player_ties: 
                                 self.display_results(all_player_cards, win, tie, p_win, p_tie))
                 self.root.after(0, lambda curr=prev_max_numerator+1, tot=division: 
                                 self.update_progress(curr, tot))
@@ -325,9 +319,10 @@ class PokerCalculatorGUI:
             end_time = time.time()
             elapsed_time = round(end_time - start_time, 2)
             self.root.after(0, lambda t=elapsed_time: self.time_label.config(text=f"Time: {t}s"))
-            
+
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            messagebox.showerror("Error", f"{e}")
+            return None, None
 
 def main():
     # This is required for multiprocessing to work correctly on Windows
