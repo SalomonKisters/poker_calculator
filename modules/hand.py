@@ -80,8 +80,6 @@ class Hand:
 
 
     def _check_sf_flush_and_straight(self, highest_win_type : HandType) -> Optional[HandValue]:
-        if highest_win_type >= HandType.ROYAL_FLUSH:
-            return None
         for suit in self.suit_counts:
             if self.suit_counts[suit] >= 5:
                 suit_ranks: List[CardNumber] = [card.number for card in self.cards_by_suit[suit]]
@@ -95,9 +93,6 @@ class Hand:
                     # Royal Flush doesn't need kickers, SF uses high card
                     primary_rank = sf_high_card if not is_royal else CardNumber.ACE # Or some convention
                     return HandValue(hand_type.value, primary_rank, None, [])
-
-                if highest_win_type >= HandType.STRAIGHT_FLUSH:
-                    return None
 
                 # If not a Straight Flush, it must be at least a Flush
                 # The 5 highest cards of the suit define the flush
@@ -127,13 +122,9 @@ class Hand:
             kickers = self._get_kickers([quad_rank], 1)
             return HandValue(HandType.FOUR_OF_A_KIND.value, quad_rank, None, kickers)
 
-        if highest_win_type >= HandType.FOUR_OF_A_KIND:
-            return None
-
         # Full House or 3 of a Kind
         if 3 in self.counts_to_values:
             rank3 = self.counts_to_values[3][0] # Highest triple rank
-
             # Full House:
             # Option 1: Two sets of trips (use lower trips as the 'pair')
             if len(self.counts_to_values[3]) > 1:
@@ -145,8 +136,6 @@ class Hand:
                 return HandValue(HandType.FULL_HOUSE.value, rank3, rank2, [])
             # Otherwise, it's just 3 of a Kind
             else:
-                if highest_win_type >= HandType.THREE_OF_A_KIND:
-                    return None
                 kickers = self._get_kickers([rank3], 2)
                 return HandValue(HandType.THREE_OF_A_KIND.value, rank3, None, kickers)
 
