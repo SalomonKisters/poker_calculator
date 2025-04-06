@@ -1,7 +1,8 @@
 # Poker Calculator
 
 A Python-based poker odds calculator that computes win probabilities and equity for multiple players in Texas Hold'em poker.
-Results can differ about 1-5 hundredths from the actual probabilities, but are then rounded to tenths.
+Results can differ about 1-5 hundredths from the actual probabilities (in Percent), but are then rounded to tenths.
+So accuracy is +- 0.1%
 ## Features
 
 - Calculate exact win percentages and tie percentages for multiple players
