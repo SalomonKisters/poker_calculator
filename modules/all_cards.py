@@ -1,6 +1,9 @@
 from typing import List, Dict, Tuple
 from .card import Suit, CardNumber, Card
 import itertools
+import random
+import math
+from typing import List, Tuple, Dict, Optional
 
 def get_all_cards() -> List[Card]:
     return [Card(card_number, suit) for card_number in CardNumber for suit in Suit]
@@ -59,30 +62,48 @@ def get_all_possible_table_cards(current_table_cards: List[Card], all_unused_car
 
     return current_possible_table_cards_dict
 
-def get_all_possible_table_cards_itertools(current_table_cards: List[Card], all_unused_cards: List[Card]) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+def get_sampled_table_cards(
+    current_table_cards: List[Card],
+    all_unused_cards: List[Card],
+    sample_size: int = 100000
+) -> Dict[Tuple[Tuple[int, int], ...], Tuple[List[Card], int]]:
+
     remaining_cards = 5 - len(current_table_cards)
-    
+
     if remaining_cards <= 0:
         sorted_cards = sorted(current_table_cards, key=lambda card: (card.number, card.suit))
         key = tuple((card.number, card.suit) for card in sorted_cards)
         return {key: (sorted_cards, 1)}
-    
+
     available_cards = [card for card in all_unused_cards if card not in current_table_cards]
-    
-    combinations_dict = {}
-    
-    # generate all ways to add remaining_cards using itertools
-    for additional_cards in itertools.combinations(available_cards, remaining_cards):
-        full_table = current_table_cards + list(additional_cards)
-        
-        # Use a tuple of (number, suit) pairs as key - more efficient than strings
-        sorted_cards = sorted(full_table, key=lambda card: (card.number, card.suit))
-        key = tuple((card.number, card.suit) for card in sorted_cards)
-        
-        if key not in combinations_dict:
-            combinations_dict[key] = (sorted_cards, 1)
-        else:
-            existing_tuple = combinations_dict[key]
-            combinations_dict[key] = (existing_tuple[0], existing_tuple[1] + 1)
-    
-    return combinations_dict
+
+    total_combinations = math.comb(len(available_cards), remaining_cards)
+    actual_sample_size = min(sample_size, total_combinations)
+
+    # Generate random indices for sampling
+    chosen_indices = sorted(random.sample(range(total_combinations), actual_sample_size))
+    sampled_combinations_dict = {}
+
+    # Initialize iterator and first target index
+    target_indices_iter = iter(chosen_indices)
+    next_target_index = next(target_indices_iter, None) # Get the first target index
+
+    combinations_iterator = itertools.combinations(available_cards, remaining_cards)
+
+    for i, additional_cards_tuple in enumerate(combinations_iterator):
+        # Check if we reached next target index
+        if i == next_target_index:
+            full_table = current_table_cards + list(additional_cards_tuple)
+
+            # Use a tuple of (number, suit) pairs as key - more efficient than strings
+            sorted_cards = sorted(full_table, key=lambda card: (card.number, card.suit))
+            key = tuple((card.number, card.suit) for card in sorted_cards)
+
+            sampled_combinations_dict[key] = (sorted_cards, 1)
+            next_target_index = next(target_indices_iter, None)
+
+            # Stop if all samples collected
+            if next_target_index is None:
+                break
+
+    return sampled_combinations_dict

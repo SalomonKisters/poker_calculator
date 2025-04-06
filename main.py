@@ -1,6 +1,8 @@
 from modules.card import Suit, CardNumber, Card
 from modules.calculator import calc_odds
 import multiprocessing as mp
+import time
+
 
 def main():
     start_cards_p2 = [Card(CardNumber.ACE, Suit.CLUBS), Card(CardNumber.ACE, Suit.DIAMONDS)]
@@ -24,4 +26,7 @@ def main():
 if __name__ == "__main__":
     # This is required for multiprocessing to work correctly on Windows
     mp.freeze_support()
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print(f"Total time taken: {round(end_time - start_time, 2)}s")
