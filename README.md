@@ -38,7 +38,9 @@ Performance is optimized by:
 [x] Add asynchronous processing for improved performance
 [x] Try Multiprocessing instead of async processing
 [x] Implement step-by-step hand evaluation for faster multi-player calculations
+[x] Create moving average implementation for quick results, getting better with time
 [ ] Create a user interface for easier interaction
+[ ] Seperate selection for each of the numerators in one step, so not all possibilities are gone over every time
 [ ] Implement comparison of hands by comparing 6-card hands first, and for both, checking what cards would improve the hand. Give current winner all wins where the other doesnt improve or doesnt improve enough to beat the current winner. Then check all 7-handed hands that would improve the loser. Give the original loser all wins where the original winner doesnt improve.
 [ ] Add some kind of caching for table cards / already checked hand combinations (?)
 [ ] Benchmark cached 5 card eval approach vs current approach (?)

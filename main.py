@@ -35,7 +35,6 @@ def main():
     # Multiple of 2!!!
     division = 64
 
-
     current_amount = 1
     prev_max_numerator = 0
     numerators_to_check = [prev_max_numerator]
