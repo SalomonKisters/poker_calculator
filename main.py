@@ -1,11 +1,17 @@
 import tkinter as tk
 from tkinter import ttk
 import time
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import itertools
 from enum import Enum, auto
 import math
 import random
+import threading
+import queue
+import multiprocessing as mp
+from multiprocessing import Pool, Manager, cpu_count
+from functools import partial
+import os
 
 class Suit(Enum):
     CLUBS = auto()
@@ -84,7 +90,23 @@ class HandType(Enum):
     STRAIGHT_FLUSH = 8
     ROYAL_FLUSH = 9
 
+# Precomputed straight patterns (optimization)
+STRAIGHT_PATTERNS = [
+    set([14, 5, 4, 3, 2]),  # A-5 wheel
+    set([5, 4, 3, 2, 1]),   # 5-high (not really used but included for completeness)
+    set([6, 5, 4, 3, 2]),   # 6-high
+    set([7, 6, 5, 4, 3]),   # 7-high
+    set([8, 7, 6, 5, 4]),   # 8-high
+    set([9, 8, 7, 6, 5]),   # 9-high
+    set([10, 9, 8, 7, 6]),  # 10-high
+    set([11, 10, 9, 8, 7]), # J-high
+    set([12, 11, 10, 9, 8]), # Q-high
+    set([13, 12, 11, 10, 9]), # K-high
+    set([14, 13, 12, 11, 10]), # A-high
+]
+
 class Hand:
+    """Optimized Hand evaluator"""
     def __init__(self, cards: List[Card]):
         self.cards = cards
     
@@ -101,92 +123,106 @@ class Hand:
         return best_value
     
     def _evaluate_five_card_hand(self, cards: List[Card]) -> float:
-        """Returns a numeric value that can be used to compare poker hands."""
+        """Optimized version of hand evaluation."""
+        # Process card values and suits once (optimization)
+        card_values = [card.number.value for card in cards]
+        suits = [card.suit for card in cards]
+        
+        # Pre-compute flush and value counts (optimization)
+        is_flush = len(set(suits)) == 1
+        
+        # Count card values - optimization: use direct dictionary instead of loop
         number_counts = {}
-        for card in cards:
-            number_counts[card.number] = number_counts.get(card.number, 0) + 1
+        for value in card_values:
+            number_counts[value] = number_counts.get(value, 0) + 1
         
-        sorted_cards = sorted(cards, key=lambda c: c.number.value, reverse=True)
-        is_flush = all(card.suit == cards[0].suit for card in cards)
-        
-        card_values = [card.number.value for card in sorted_cards]
+        # Check for straight using precomputed patterns (optimization)
         is_straight = False
+        straight_high_card = 0
         
-        # Check for straight (including the special A-2-3-4-5 case)
-        if len(set(card_values)) == 5:
-            if max(card_values) - min(card_values) == 4:
-                is_straight = True
-            elif set(card_values) == {14, 5, 4, 3, 2}:  # A, 5, 4, 3, 2
-                is_straight = True
-                # Adjust sorted cards if it's a 5-high straight
-                sorted_cards = sorted_cards[1:] + [sorted_cards[0]]
+        if len(set(card_values)) == 5:  # All values must be unique for a straight
+            card_values_set = set(card_values)
+            
+            for pattern in STRAIGHT_PATTERNS:
+                if card_values_set == pattern:
+                    is_straight = True
+                    # For A-5 straight, high card is 5
+                    if pattern == STRAIGHT_PATTERNS[0]:  # A-5 wheel
+                        straight_high_card = 5
+                    else:
+                        straight_high_card = max(pattern)
+                    break
         
+        # Sort values in descending order for kickers
+        sorted_values = sorted(card_values, reverse=True)
+        
+        # Determine hand type and kickers - using a more direct approach
         hand_type = 0
         kickers = []
         
         # Royal Flush
-        if is_flush and is_straight and sorted_cards[0].number == CardNumber.ACE and sorted_cards[1].number == CardNumber.KING:
+        if is_flush and is_straight and sorted_values[0] == 14 and sorted_values[1] == 13:
             hand_type = HandType.ROYAL_FLUSH.value
         
         # Straight Flush
         elif is_flush and is_straight:
             hand_type = HandType.STRAIGHT_FLUSH.value
-            kickers = [sorted_cards[0].number.value]
+            kickers = [straight_high_card]
         
         # Four of a kind
         elif 4 in number_counts.values():
             hand_type = HandType.FOUR_OF_A_KIND.value
-            four_of_a_kind_value = next(num for num, count in number_counts.items() if count == 4)
-            kicker = next(num for num, count in number_counts.items() if count == 1)
-            kickers = [four_of_a_kind_value.value, kicker.value]
+            quads_value = next(val for val, count in number_counts.items() if count == 4)
+            kicker = next(val for val, count in number_counts.items() if count == 1)
+            kickers = [quads_value, kicker]
         
         # Full House
         elif 3 in number_counts.values() and 2 in number_counts.values():
             hand_type = HandType.FULL_HOUSE.value
-            three_of_a_kind_value = next(num for num, count in number_counts.items() if count == 3)
-            pair_value = next(num for num, count in number_counts.items() if count == 2)
-            kickers = [three_of_a_kind_value.value, pair_value.value]
+            trips_value = next(val for val, count in number_counts.items() if count == 3)
+            pair_value = next(val for val, count in number_counts.items() if count == 2)
+            kickers = [trips_value, pair_value]
         
         # Flush
         elif is_flush:
             hand_type = HandType.FLUSH.value
-            kickers = [card.number.value for card in sorted_cards]
+            kickers = sorted_values
         
         # Straight
         elif is_straight:
             hand_type = HandType.STRAIGHT.value
-            kickers = [sorted_cards[0].number.value]
+            kickers = [straight_high_card]
         
         # Three of a kind
         elif 3 in number_counts.values():
             hand_type = HandType.THREE_OF_A_KIND.value
-            three_of_a_kind_value = next(num for num, count in number_counts.items() if count == 3)
-            other_values = sorted([num.value for num, count in number_counts.items() if count == 1], reverse=True)
-            kickers = [three_of_a_kind_value.value] + other_values
+            trips_value = next(val for val, count in number_counts.items() if count == 3)
+            other_values = sorted([val for val, count in number_counts.items() if count == 1], reverse=True)
+            kickers = [trips_value] + other_values
         
         # Two Pair
         elif list(number_counts.values()).count(2) == 2:
             hand_type = HandType.TWO_PAIR.value
-            pairs = sorted([num.value for num, count in number_counts.items() if count == 2], reverse=True)
-            kicker = next(num.value for num, count in number_counts.items() if count == 1)
+            pairs = sorted([val for val, count in number_counts.items() if count == 2], reverse=True)
+            kicker = next(val for val, count in number_counts.items() if count == 1)
             kickers = pairs + [kicker]
         
         # One Pair
         elif 2 in number_counts.values():
             hand_type = HandType.PAIR.value
-            pair_value = next(num for num, count in number_counts.items() if count == 2)
-            other_values = sorted([num.value for num, count in number_counts.items() if count == 1], reverse=True)
-            kickers = [pair_value.value] + other_values
+            pair_value = next(val for val, count in number_counts.items() if count == 2)
+            other_values = sorted([val for val, count in number_counts.items() if count == 1], reverse=True)
+            kickers = [pair_value] + other_values
         
         # High Card
         else:
             hand_type = HandType.HIGH_CARD.value
-            kickers = [card.number.value for card in sorted_cards]
+            kickers = sorted_values
         
         # Combine hand type with kickers for final numeric value
+        # Optimization: use a more efficient computation
         value = hand_type
         for i, kicker in enumerate(kickers):
-            # Each kicker is placed in a decreasing decimal "slot" so they can be compared
             value += kicker / (100 ** (i + 1))
         
         return value
@@ -195,11 +231,39 @@ def get_all_cards() -> List[Card]:
     """Return a list of all 52 cards in a standard deck."""
     return [Card(number, suit) for suit in Suit for number in CardNumber]
 
-def calculate_hand_odds(all_player_cards: List[List[Card]], table_cards: List[Card],
-                        status_callback, progress_callback):
-    """
-    Calculate the odds of each player winning or tying.
+# Worker function for multiprocessing
+def process_combinations(chunk, player_cards, table_cards):
+    """Process a chunk of combinations and return win/tie counts."""
+    player_wins = [0] * len(player_cards)
+    player_ties = [0] * len(player_cards)
+    
+    for combo in chunk:
+        complete_table = table_cards + list(combo)
+        
+        all_player_hands = []
+        for cards in player_cards:
+            combined = cards + complete_table
+            current_hand = Hand(combined)
+            all_player_hands.append(current_hand)
+        
+        all_hand_values = [hand.check_hand_value() for hand in all_player_hands]
+        best_value = max(all_hand_values)
+        best_indices = [idx for idx, val in enumerate(all_hand_values) if val == best_value]
+        
+        if len(best_indices) == 1:
+            player_wins[best_indices[0]] += 1
+        else:
+            for idx in best_indices:
+                player_ties[idx] += 1
+    
+    # Return results for this worker
+    return (player_wins, player_ties, len(chunk))
 
+def calculate_hand_odds(all_player_cards: List[List[Card]], table_cards: List[Card],
+                       status_callback, progress_callback, cancel_flag):
+    """
+    Calculate the odds of each player winning or tying using multiprocessing.
+    
     Returns:
     - win_percentages: % of times each player wins outright
     - tie_percentages: % of times each player ties
@@ -213,7 +277,8 @@ def calculate_hand_odds(all_player_cards: List[List[Card]], table_cards: List[Ca
     # All available cards in the deck minus used ones
     all_cards = get_all_cards()
     all_unused_cards = [card for card in all_cards 
-                        if card not in all_used_cards]
+                        if not any(card.number == used_card.number and card.suit == used_card.suit 
+                                  for used_card in all_used_cards)]
     
     # Number of community cards still to draw
     cards_to_draw = 5 - len(table_cards)
@@ -246,8 +311,8 @@ def calculate_hand_odds(all_player_cards: List[List[Card]], table_cards: List[Ca
         
         return win_percentages, tie_percentages, player_wins, player_ties, 1
     
-    # Otherwise, we must enumerate or sample all possible ways to fill the remaining cards
-    MAX_COMBINATIONS = 5000
+    # Calculate total combinations
+    MAX_COMBINATIONS = 150000
     total_combinations = math.comb(len(all_unused_cards), cards_to_draw)
     
     use_sampling = total_combinations > MAX_COMBINATIONS
@@ -257,46 +322,91 @@ def calculate_hand_odds(all_player_cards: List[List[Card]], table_cards: List[Ca
         all_combinations = []
         possible_indices = list(range(len(all_unused_cards)))
         for _ in range(MAX_COMBINATIONS):
+            if cancel_flag.is_set():
+                break
             sampled_indices = random.sample(possible_indices, cards_to_draw)
             sampled_cards = [all_unused_cards[i] for i in sampled_indices]
             all_combinations.append(sampled_cards)
-        total_count = MAX_COMBINATIONS
+        total_count = len(all_combinations)
     else:
         status_callback(f"Calculating all {total_combinations:,} combinations")
         all_combinations = list(itertools.combinations(all_unused_cards, cards_to_draw))
         total_count = len(all_combinations)
     
+    # Determine number of cores to use for processing
+    num_cores = max(1, mp.cpu_count() - 1)  # Leave one core free for UI
+    status_callback(f"Using {num_cores} CPU cores for calculation")
+    
+    # Split combinations into chunks for parallel processing
+    chunk_size = max(1, total_count // (num_cores * 10))  # Multiple chunks per core for better load balancing
+    chunks = [all_combinations[i:i + chunk_size] for i in range(0, total_count, chunk_size)]
+    
     player_wins = [0] * len(all_player_cards)
     player_ties = [0] * len(all_player_cards)
     
-    for i, combo in enumerate(all_combinations):
-        complete_table = table_cards + list(combo)
-        
-        all_player_hands = []
-        for player_cards in all_player_cards:
-            combined = player_cards + complete_table
-            current_hand = Hand(combined)
-            all_player_hands.append(current_hand)
-        
-        all_hand_values = [hand.check_hand_value() for hand in all_player_hands]
-        best_value = max(all_hand_values)
-        best_indices = [idx for idx, val in enumerate(all_hand_values) if val == best_value]
-        
-        if len(best_indices) == 1:
-            player_wins[best_indices[0]] += 1
-        else:
-            for idx in best_indices:
-                player_ties[idx] += 1
-        
-        if i % 50 == 0 or i == (total_count - 1):
-            progress = (i + 1) / total_count * 100
-            progress_callback(progress)
+    # Create a pool of worker processes
+    pool = mp.Pool(processes=num_cores)
     
-    win_percentages = [round(w / total_count * 100, 2) for w in player_wins]
-    tie_percentages = [round(t / total_count * 100, 2) for t in player_ties]
+    # Prepare partial function with fixed arguments
+    process_func = partial(process_combinations, player_cards=all_player_cards, table_cards=table_cards)
     
-    return win_percentages, tie_percentages, player_wins, player_ties, total_count
-
+    # Submit all chunks for processing
+    results = []
+    for chunk in chunks:
+        if cancel_flag.is_set():
+            break
+        results.append(pool.apply_async(process_func, args=(chunk,)))
+    
+    # Track progress
+    completed_chunks = 0
+    total_chunks = len(chunks)
+    last_update_time = time.time()
+    
+    # Collect results as they complete
+    processed_combinations = 0
+    for result in results:
+        if cancel_flag.is_set():
+            break
+        
+        try:
+            chunk_wins, chunk_ties, chunk_count = result.get(timeout=0.1)
+            
+            # Update counters
+            for i in range(len(player_wins)):
+                player_wins[i] += chunk_wins[i]
+                player_ties[i] += chunk_ties[i]
+            
+            processed_combinations += chunk_count
+            completed_chunks += 1
+            
+            # Update progress less frequently to reduce UI overhead
+            current_time = time.time()
+            if current_time - last_update_time > 0.1 or completed_chunks == total_chunks:
+                progress = (completed_chunks / total_chunks) * 100
+                progress_callback(progress)
+                last_update_time = current_time
+                
+        except mp.TimeoutError:
+            # Timeout just means the result isn't ready yet
+            continue
+    
+    # Clean up pool
+    pool.close()
+    pool.terminate()
+    pool.join()
+    
+    # Calculate percentages based on processed combinations
+    if processed_combinations > 0:
+        win_percentages = [round(w / processed_combinations * 100, 1) for w in player_wins]
+        tie_percentages = [round(t / processed_combinations * 100, 1) for t in player_ties]
+    else:
+        win_percentages = [0.0] * len(all_player_cards)
+        tie_percentages = [0.0] * len(all_player_cards)
+    
+    if cancel_flag.is_set():
+        status_callback(f"Calculation cancelled after processing {processed_combinations:,} combinations")
+    
+    return win_percentages, tie_percentages, player_wins, player_ties, processed_combinations
 
 class PokerOddsCalculatorGUI:
     def __init__(self, root):
@@ -344,6 +454,21 @@ class PokerOddsCalculatorGUI:
         # Progress bar style
         self.style.configure("TProgressbar", background=accent_color, troughcolor=secondary_bg)
         
+        # Card and result styles
+        self.style.configure("Card.TCombobox", padding=3, relief="flat", borderwidth=1)
+        self.style.configure("Hint.TCombobox", fieldbackground="#4a6990", foreground="white")
+        self.style.configure("Error.TCombobox", fieldbackground="#e74c3c", foreground="white")
+        self.style.configure("Result.TLabel", 
+                             background="#34495e",
+                             foreground="#ecf0f1",
+                             padding=8,
+                             font=('Arial', 10))
+        self.style.configure("StrongHand.TLabel", 
+                             background="#2980b9",
+                             foreground="white",
+                             padding=8,
+                             font=('Arial', 10, 'bold'))
+        
         # Set fullscreen
         self.root.attributes('-fullscreen', True)
         self.root.configure(background=bg_color)
@@ -354,7 +479,9 @@ class PokerOddsCalculatorGUI:
         self.all_cards = get_all_cards()
         self.used_cards = []
         self.calculation_running = False
-        self.cancel_calculation = False
+        self.cancel_calculation_flag = threading.Event()
+        self.calculation_thread = None
+        self.result_queue = queue.Queue()
         
         # Main frame
         self.main_frame = ttk.Frame(root, padding="20")
@@ -379,7 +506,7 @@ class PokerOddsCalculatorGUI:
         
         subtitle_label = tk.Label(
             title_frame,
-            text="V0.3",
+            text="V0.5 - MULTI-CORE",
             font=("Arial", 10, "italic"),
             fg=text_color,
             bg=bg_color
@@ -433,7 +560,6 @@ class PokerOddsCalculatorGUI:
         self.results_frame = ttk.LabelFrame(right_column, text="RESULTS", padding="15")
         self.results_frame.pack(fill=tk.BOTH, expand=True)
         
-        self.style.configure("Results.TFrame", background=secondary_bg)
         results_container = ttk.Frame(self.results_frame, style="Results.TFrame")
         results_container.pack(fill=tk.BOTH, expand=True, pady=5)
         self.results_frame_container = results_container
@@ -479,6 +605,15 @@ class PokerOddsCalculatorGUI:
                                             variable=self.progress_var,
                                             style="TProgressbar")
         self.progress_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
+        
+        # CPU info display
+        cpu_info_label = ttk.Label(self.status_frame, 
+                                  text=f"CPU cores available: {mp.cpu_count()}",
+                                  anchor=tk.E)
+        cpu_info_label.pack(side=tk.RIGHT, padx=(0, 10))
+        
+        # Set up a periodic check for calculation results
+        self.check_calculation_results()
 
     def exit_fullscreen(self):
         self.root.attributes('-fullscreen', False)
@@ -487,8 +622,6 @@ class PokerOddsCalculatorGUI:
     def create_card_selector(self, parent, name):
         frame = ttk.Frame(parent)
         frame.pack()
-        
-        self.style.configure("Card.TCombobox", padding=3, relief="flat", borderwidth=1)
         
         number_var = tk.StringVar()
         number_var.set("Select")
@@ -547,9 +680,6 @@ class PokerOddsCalculatorGUI:
 
     def update_card_selection(self, changed_dropdown, other_dropdown):
         """Visual feedback if one dropdown is selected while the other is not."""
-        self.style.configure("Hint.TCombobox", fieldbackground="#4a6990", foreground="white")
-        self.style.configure("Error.TCombobox", fieldbackground="#e74c3c", foreground="white")
-        
         if changed_dropdown.get() != "Select" and other_dropdown.get() == "Select":
             other_dropdown.configure(style="Hint.TCombobox")
         else:
@@ -568,10 +698,6 @@ class PokerOddsCalculatorGUI:
         
         info_frame = ttk.Frame(player_frame)
         info_frame.pack(fill=tk.X, pady=(0, 8))
-        
-        name_var = tk.StringVar(value=f"Player {player_num}")
-        name_entry = ttk.Entry(info_frame, textvariable=name_var, width=15)
-        name_entry.pack(side=tk.LEFT)
         
         remove_btn = ttk.Button(info_frame,
                                 text="×",
@@ -606,7 +732,6 @@ class PokerOddsCalculatorGUI:
         self.players.append({
             "frame": player_frame,
             "number": player_num,
-            "name_var": name_var,
             "card_selectors": card_selectors,
             "result_label": result_var,
             "result_widget": result_label
@@ -627,13 +752,30 @@ class PokerOddsCalculatorGUI:
         self.update_used_cards()
 
     def update_used_cards(self):
+        """Update the list of used cards and check for duplicates."""
         self.used_cards = []
+        
+        # Reset all card styles first
+        for selector in self.table_card_selectors:
+            if selector["number"].get() != "Select" and selector["suit"].get() != "Select":
+                selector["number_dropdown"].configure(style="Card.TCombobox")
+                selector["suit_dropdown"].configure(style="Card.TCombobox")
+        
+        for player in self.players:
+            for selector in player["card_selectors"]:
+                if selector["number"].get() != "Select" and selector["suit"].get() != "Select":
+                    selector["number_dropdown"].configure(style="Card.TCombobox")
+                    selector["suit_dropdown"].configure(style="Card.TCombobox")
+        
+        # Gather all selected cards
+        all_selectors = []
         
         # Gather selected table cards
         for selector in self.table_card_selectors:
             card = self.get_card_from_selector(selector)
             if card:
                 self.used_cards.append(card)
+                all_selectors.append(selector)
         
         # Gather selected player cards
         for player in self.players:
@@ -641,48 +783,35 @@ class PokerOddsCalculatorGUI:
                 card = self.get_card_from_selector(selector)
                 if card:
                     self.used_cards.append(card)
+                    all_selectors.append(selector)
         
         # Check for duplicates
         seen_cards = {}
         
-        # Check table card duplicates
-        for selector in self.table_card_selectors:
+        for i, selector in enumerate(all_selectors):
             card = self.get_card_from_selector(selector)
             if card:
                 card_str = str(card)
                 if card_str in seen_cards:
-                    # Indicate duplicates in red
+                    # Mark duplicates in red
                     selector["number_dropdown"].configure(style="Error.TCombobox")
                     selector["suit_dropdown"].configure(style="Error.TCombobox")
-                    seen_cards[card_str]["number_dropdown"].configure(style="Error.TCombobox")
-                    seen_cards[card_str]["suit_dropdown"].configure(style="Error.TCombobox")
+                    
+                    # Also mark the original card
+                    orig_selector = seen_cards[card_str]
+                    orig_selector["number_dropdown"].configure(style="Error.TCombobox")
+                    orig_selector["suit_dropdown"].configure(style="Error.TCombobox")
                 else:
-                    # Normal style if not just in a "hint" state
-                    if (selector["number_dropdown"].cget("style") != "Hint.TCombobox" and
-                            selector["suit_dropdown"].cget("style") != "Hint.TCombobox"):
+                    # Only check for "Hint" style to preserve error styles
+                    if (selector["number_dropdown"].cget("style") == "Hint.TCombobox" or
+                            selector["suit_dropdown"].cget("style") == "Hint.TCombobox"):
                         selector["number_dropdown"].configure(style="Card.TCombobox")
                         selector["suit_dropdown"].configure(style="Card.TCombobox")
+                    
                     seen_cards[card_str] = selector
-        
-        # Check player card duplicates
-        for player in self.players:
-            for selector in player["card_selectors"]:
-                card = self.get_card_from_selector(selector)
-                if card:
-                    card_str = str(card)
-                    if card_str in seen_cards:
-                        selector["number_dropdown"].configure(style="Error.TCombobox")
-                        selector["suit_dropdown"].configure(style="Error.TCombobox")
-                        seen_cards[card_str]["number_dropdown"].configure(style="Error.TCombobox")
-                        seen_cards[card_str]["suit_dropdown"].configure(style="Error.TCombobox")
-                    else:
-                        if (selector["number_dropdown"].cget("style") != "Hint.TCombobox" and
-                                selector["suit_dropdown"].cget("style") != "Hint.TCombobox"):
-                            selector["number_dropdown"].configure(style="Card.TCombobox")
-                            selector["suit_dropdown"].configure(style="Card.TCombobox")
-                        seen_cards[card_str] = selector
 
-    def get_card_from_selector(self, selector):
+    def get_card_from_selector(self, selector) -> Optional[Card]:
+        """Convert UI card selection to Card object with improved error handling."""
         number_str = selector["number"].get()
         suit_str = selector["suit"].get()
         
@@ -690,6 +819,7 @@ class PokerOddsCalculatorGUI:
             return None
         
         # Convert face letter to CardNumber
+        number = None
         if number_str == "A":
             number = CardNumber.ACE
         elif number_str == "K":
@@ -699,8 +829,13 @@ class PokerOddsCalculatorGUI:
         elif number_str == "J":
             number = CardNumber.JACK
         else:
-            # Otherwise parse numeric
-            number = next((n for n in CardNumber if str(n) == number_str), None)
+            try:
+                # Otherwise parse numeric
+                value = int(number_str)
+                number = next((n for n in CardNumber if n.value == value), None)
+            except ValueError:
+                # This handles the case if number_str cannot be converted to int
+                return None
         
         # Suit from suit string
         suit = None
@@ -716,8 +851,12 @@ class PokerOddsCalculatorGUI:
     def cancel_calculation_handler(self):
         """Allows user to cancel an ongoing calculation."""
         if self.calculation_running:
-            self.cancel_calculation = True
+            self.cancel_calculation_flag.set()
             self.status_var.set("Cancelling calculation...")
+            
+            # If we have a thread, wait for it to complete
+            if self.calculation_thread and self.calculation_thread.is_alive():
+                self.calculation_thread.join(0.1)  # Give it a little time to finish
 
     def start_calculation(self):
         """Initiates odds calculation if it's not already running."""
@@ -764,93 +903,165 @@ class PokerOddsCalculatorGUI:
         
         seen = set()
         for c in all_selected_cards:
-            if str(c) in seen:
-                self.status_var.set(f"Error: Card {c} is used more than once")
+            card_str = str(c)
+            if card_str in seen:
+                self.status_var.set(f"Error: Card {card_str} is used more than once")
                 return
-            seen.add(str(c))
+            seen.add(card_str)
         
+        # Reset cancel flag
+        self.cancel_calculation_flag.clear()
+        
+        # Start calculation in a separate thread
         self.calculation_running = True
-        self.cancel_calculation = False
         self.calculate_button.config(state=tk.DISABLED)
         self.cancel_button.config(state=tk.NORMAL)
         
-        self.root.after(100, lambda: self.run_calculation(all_player_cards, table_cards))
+        # Create and start the calculation thread
+        self.calculation_thread = threading.Thread(
+            target=self._calculation_worker, 
+            args=(all_player_cards, table_cards),
+            daemon=True
+        )
+        self.calculation_thread.start()
 
-    def run_calculation(self, all_player_cards, table_cards):
-        """Runs calculation in the UI loop to avoid freezing."""
+    def _calculation_worker(self, all_player_cards, table_cards):
+        """Worker function that runs in a separate thread to perform the calculation."""
         try:
             start_time = time.time()
-            self.status_var.set("Calculating odds... Please wait.")
+            
+            # Update UI via queue so main thread can handle it
+            self.result_queue.put(("status", "Calculating odds... Please wait."))
             
             def update_status(message):
-                self.status_var.set(message)
-                self.root.update_idletasks()
+                self.result_queue.put(("status", message))
             
             def update_progress(progress):
-                self.progress_var.set(progress)
-                self.percentage_var.set(f"{int(progress)}%")
-                self.root.update_idletasks()
+                self.result_queue.put(("progress", progress))
             
-            win_percentages, tie_percentages, player_wins, player_ties, total_count = calculate_hand_odds(
-                all_player_cards, table_cards, update_status, update_progress
+            # Run the calculation with ability to cancel
+            result = calculate_hand_odds(
+                all_player_cards, table_cards, update_status, update_progress, self.cancel_calculation_flag
             )
             
-            if not self.cancel_calculation:
-                # Highlight styles for results
-                self.style.configure("Result.TLabel", 
-                                     background="#34495e",
-                                     foreground="#ecf0f1",
-                                     padding=8,
-                                     font=('Arial', 10))
-                
-                self.style.configure("StrongHand.TLabel", 
-                                     background="#2980b9",
-                                     foreground="white",
-                                     padding=8,
-                                     font=('Arial', 10, 'bold'))
-                
-                for i, player in enumerate(self.players):
-                    # Retrieve or default to "Player n"
-                    player_name = player['name_var'].get() if 'name_var' in player else f"Player {player['number']}"
-                    
-                    # Overall equity: win% + (tie% / number_of_tie_splits)
-                    total_equity = win_percentages[i] + (tie_percentages[i] / len(self.players))
-                    
-                    # Format results
-                    result_text = f"{player_name}\n"
-                    result_text += f"Win: {win_percentages[i]}%   |   Tie: {tie_percentages[i]}%   |   "
-                    result_text += f"Equity: {round(total_equity, 2)}%"
-                    
-                    player["result_label"].set(result_text)
-                    
-                    # Style based on equity
-                    if total_equity > 50:
-                        player["result_widget"].configure(style="StrongHand.TLabel")
-                    else:
-                        player["result_widget"].configure(style="Result.TLabel")
-                
+            win_percentages, tie_percentages, player_wins, player_ties, total_count = result
+            
+            # If calculation wasn't cancelled, process and display results
+            if not self.cancel_calculation_flag.is_set():
                 end_time = time.time()
                 calc_time = round(end_time - start_time, 2)
-                self.status_var.set(f"✓ Calculation completed in {calc_time} seconds")
-                self.progress_var.set(100)
-                self.percentage_var.set("100%")
+                
+                # Package results for the main thread
+                self.result_queue.put((
+                    "results", 
+                    (win_percentages, tie_percentages, calc_time)
+                ))
             else:
-                self.status_var.set("✗ Calculation cancelled")
-        
+                self.result_queue.put(("cancelled", None))
+                
         except Exception as e:
-            self.status_var.set(f"Error: {str(e)}")
+            self.result_queue.put(("error", str(e)))
         
         finally:
-            self.calculate_button.config(state=tk.NORMAL)
-            self.cancel_button.config(state=tk.DISABLED)
-            self.calculation_running = False
-            self.cancel_calculation = False
-
+            self.result_queue.put(("complete", None))
+    
+    def check_calculation_results(self):
+        """Periodically check for calculation results from the worker thread."""
+        try:
+            while not self.result_queue.empty():
+                result_type, data = self.result_queue.get_nowait()
+                
+                if result_type == "status":
+                    self.status_var.set(data)
+                
+                elif result_type == "progress":
+                    progress = data
+                    self.progress_var.set(progress)
+                    self.percentage_var.set(f"{int(progress)}%")
+                    # Force update of the UI
+                    self.root.update_idletasks()
+                
+                elif result_type == "results":
+                    win_percentages, tie_percentages, calc_time = data
+                    
+                    for i, player in enumerate(self.players):
+                        # Use default player name
+                        player_name = f"Player {player['number']}"
+                        
+                        # Calculate equity (accounting for ties)
+                        total_equity = win_percentages[i]
+                        if tie_percentages[i] > 0 and len(self.players) > 0:
+                            total_equity += (tie_percentages[i] / len(self.players))
+                        
+                        # Round to 1 decimal place
+                        total_equity = round(total_equity, 1)
+                        
+                        # Format results
+                        result_text = f"{player_name}\n"
+                        result_text += f"Win: {win_percentages[i]}%   |   Tie: {tie_percentages[i]}%   |   "
+                        result_text += f"Equity: {total_equity}%"
+                        
+                        player["result_label"].set(result_text)
+                        
+                        # Style based on equity
+                        if total_equity > 50:
+                            player["result_widget"].configure(style="StrongHand.TLabel")
+                        else:
+                            player["result_widget"].configure(style="Result.TLabel")
+                    
+                    self.status_var.set(f"✓ Calculation completed in {calc_time} seconds")
+                    self.progress_var.set(100)
+                    self.percentage_var.set("100%")
+                
+                elif result_type == "cancelled":
+                    self.status_var.set("✗ Calculation cancelled")
+                
+                elif result_type == "error":
+                    self.status_var.set(f"Error: {data}")
+                
+                elif result_type == "complete":
+                    self.calculation_running = False
+                    self.calculate_button.config(state=tk.NORMAL)
+                    self.cancel_button.config(state=tk.DISABLED)
+        
+        except queue.Empty:
+            pass
+        
+        # Schedule the next check
+        self.root.after(50, self.check_calculation_results)  # Reduced from 100ms to 50ms for more responsive updates
 
 def main():
-    root = tk.Tk()
-    app = PokerOddsCalculatorGUI(root)
-    root.mainloop()
+    # Set up proper exception handling for the main thread
+    try:
+        # Enable multiprocessing support on Windows
+        if os.name == 'nt':  # Windows
+            mp.freeze_support()
+            
+        # Set multiprocessing start method
+        try:
+            mp.set_start_method('spawn')  # More stable across platforms
+        except RuntimeError:
+            # Method already set, ignore
+            pass
+            
+        root = tk.Tk()
+        
+        # Handle unexpected window close
+        def on_close():
+            # If there's a calculation running, stop it
+            if hasattr(app, 'calculation_running') and app.calculation_running:
+                app.cancel_calculation_flag.set()
+                if app.calculation_thread and app.calculation_thread.is_alive():
+                    app.calculation_thread.join(0.1)  # Give it a little time
+            root.destroy()
+        
+        app = PokerOddsCalculatorGUI(root)
+        root.protocol("WM_DELETE_WINDOW", on_close)
+        root.mainloop()
+    except Exception as e:
+        import traceback
+        print(f"Unhandled exception: {e}")
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
