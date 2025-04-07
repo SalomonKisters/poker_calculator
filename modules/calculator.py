@@ -140,3 +140,51 @@ def calc_odds(all_player_cards: List[List[Card]], table_cards: List[Card], divis
     tie_percentages = [tie / total_card_amount * 100 for tie in total_player_ties]
     
     return win_percentages, tie_percentages, total_player_wins, total_player_ties
+
+
+def optimized_calc_odds(all_player_cards, table_cards, division, numerators_to_check):
+    # Similar setup as before
+    all_used_cards = table_cards + [card for player_cards in all_player_cards for card in player_cards]
+    all_unused_cards = [card for card in get_all_cards() if card not in all_used_cards]
+    
+    # Get all possible table card combinations (but only to 4 cards, not 5)
+    four_card_table_combinations = get_sampled_table_cards_by_division(
+        table_cards, all_unused_cards, division, numerators_to_check, remaining_cards=4-len(table_cards)
+    )
+    
+    # Process each 4-card table combination
+    for table_key, (four_card_table, count) in four_card_table_combinations.items():
+        # Create 6-card hands for each player
+        six_card_hands = []
+        for player_cards in all_player_cards:
+            six_card_hand = SixCardHand(player_cards + four_card_table)
+            six_card_hands.append(six_card_hand)
+        
+        # Compare 6-card hands to find current leader and player improvements
+        current_leader_idx, player_improvements = compare_six_card_hands(six_card_hands)
+        
+        # For each potential river card
+        for river_card in all_unused_cards:
+            if river_card not in four_card_table:
+                # Check if this river card would improve any trailing player enough to win
+                trailing_player_wins = False
+                
+                for i, six_card_hand in enumerate(six_card_hands):
+                    if i != current_leader_idx:  # Skip the current leader
+                        # Check if this card improves the trailing player's hand
+                        improved_hand = Hand(six_card_hand.cards + [river_card])
+                        improved_value = improved_hand.check_hand_value()
+                        
+                        # Check if the leader's hand also improves
+                        leader_improved_hand = Hand(six_card_hands[current_leader_idx].cards + [river_card])
+                        leader_improved_value = leader_improved_hand.check_hand_value()
+                        
+                        # If trailing player now beats the leader
+                        if improved_value > leader_improved_value:
+                            trailing_player_wins = True
+                            total_player_wins[i] += count
+                            break
+                
+                # If no trailing player wins with this river card, give win to current leader
+                if not trailing_player_wins:
+                    total_player_wins[current_leader_idx] += count
