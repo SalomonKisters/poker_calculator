@@ -51,6 +51,7 @@ Performance is optimized by:
 ## Potential improvements to research
 
 - [ ] Implement comparison of hands by comparing 6-card hands first, and for both, checking what cards would improve the hand. Give current winner all wins where the other doesnt improve or doesnt improve enough to beat the current winner. Then check all 7-handed hands that would improve the loser. Give the original loser all wins where the original winner doesnt improve.
+- [ ] Direkt von Anfang an nur alle improving 5 cards anschauen, zu was sie improven, also alle straights mit der hand, alle flushes, etc / Rekursiv, wie das siehe oben -> current winner, improving winner vs current winners improving stuff, etc.
 - [ ] Seperate selection for each of the table card combinations in one step, so not all possibilities are gone over every time (not sure if this is needed, since it will slow down initial calculations again)
 - [ ] Add some kind of caching for table cards / already checked hand combinations
 - [ ] Benchmark cached 5 card eval approach vs current approach
